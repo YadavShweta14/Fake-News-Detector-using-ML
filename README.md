@@ -12,7 +12,7 @@ This project is a simple and effective web-based application that classifies new
 
 ## 📚 Dataset
 
-The model is trained on a dataset of news articles (`train.csv`) containing:
+The model is trained on a dataset of news articles (`train.csv`).
 
 ## 🧠 Machine Learning Workflow
 
