@@ -1,56 +1,39 @@
 import streamlit as st
-import numpy as np
 import re
-import pandas as pd
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
+import joblib
 
+# Load saved model and vectorizer
+model = joblib.load('fake_news_model.pkl')
+vectorizer = joblib.load('tfidf_vectorizer.pkl')
 
-# Load data
-news_df = pd.read_csv('train.csv')
-news_df = news_df.fillna(' ')
-news_df['content'] = news_df['author'] + ' ' + news_df['title']
-
-# Stemming function
+# Preprocessing function (must match training exactly)
 ps = PorterStemmer()
-def stemming(content):
-    stemmed_content = re.sub('[^a-zA-Z]', ' ', content)
-    stemmed_content = stemmed_content.lower().split()
-    stemmed_content = [ps.stem(word) for word in stemmed_content if word not in stopwords.words('english')]
-    return ' '.join(stemmed_content)
+stop_words = set(stopwords.words('english'))
 
-# Preprocess content
-news_df['content'] = news_df['content'].apply(stemming)
+def preprocess_text(text):
+    text = re.sub('[^a-zA-Z]', ' ', text)
+    text = text.lower().split()
+    text = [ps.stem(word) for word in text if word not in stop_words]
+    return ' '.join(text)
 
-# Vectorize
-vector = TfidfVectorizer()
-X = vector.fit_transform(news_df['content'].values)
-y = news_df['label'].values
+# Streamlit UI
+st.title("📰 Fake News Detector")
+#st.write("Enter a news headline or article and check whether it's real or fake.")
 
-# Train/Test Split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=2)
+input_text = st.text_area("📝 Enter news article text:")
 
-# Train model
-model = LogisticRegression()
-model.fit(X_train, y_train)
-
-# Streamlit app
-st.title('📰 Fake News Detector')
-input_text = st.text_area('Enter news article text below:')
-
-if st.button("Check"):
-    if input_text.strip() != "":
-        input_text_processed = stemming(input_text)
-        input_vector = vector.transform([input_text_processed])
-        prediction = model.predict(input_vector)
+if st.button("Check News"):
+    if input_text.strip() == "":
+        st.warning("Please enter some text to analyze.")
+    else:
+        processed_text = preprocess_text(input_text)
+        vect_text = vectorizer.transform([processed_text])
+        prediction = model.predict(vect_text)
 
         if prediction[0] == 1:
-            st.error('⚠️ The News is Fake')
+            st.success("This news is REAL!")
         else:
-            st.success('✅ The News is Real')
-    else:
-        st.warning("Please enter some text to analyze.")
+            st.error("This news is FAKE.")
